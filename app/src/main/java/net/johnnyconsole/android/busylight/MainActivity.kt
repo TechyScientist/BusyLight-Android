@@ -18,9 +18,13 @@ import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.graphics.blue
+import androidx.core.graphics.green
+import androidx.core.graphics.red
 import com.google.android.material.slider.Slider
 import net.johnnyconsole.android.busylight.databinding.ActivityMainBinding
 import java.io.IOException
+import java.io.OutputStream
 import java.util.UUID
 
 class MainActivity : AppCompatActivity() {
@@ -34,6 +38,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btDevice: BluetoothDevice
     private lateinit var btConnection: ConnectThread
     private var btSocket: BluetoothSocket? = null
+    private var btOutput: OutputStream? = null
 
     private val BT_SERIAL_UUID = "00001101-0000-1000-8000-00805F9B34FB"
     private val BT_REQUEST_CONNECT = 100
@@ -67,6 +72,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         btSocket = btDevice.createRfcommSocketToServiceRecord(UUID.fromString(BT_SERIAL_UUID))
+        btOutput = btSocket?.outputStream
         btConnection = ConnectThread()
         btConnection.start()
     }
@@ -88,6 +94,9 @@ class MainActivity : AppCompatActivity() {
                     supportActionBar!!.setBackgroundDrawable(ColorDrawable(color))
                     binding.toolbar.setTitleTextColor(tint)
                     supportActionBar!!.title = "BusyLight: Custom"
+                    val btRequest = "R${color.red} G${color.green} B${color.blue} X\r\n"
+                    Log.d("BusyLight", btRequest)
+                    btConnection.dispatch(btRequest)
                     val button = view as Button
                     button.setBackgroundColor(color)
                     button.setTextColor(tint)
@@ -172,6 +181,9 @@ class MainActivity : AppCompatActivity() {
             supportActionBar!!.setBackgroundDrawable(ColorDrawable(color))
             binding.toolbar.setTitleTextColor(tint)
             supportActionBar!!.title = "BusyLight: $text"
+            val btRequest = "R${color.red} G${color.green} B${color.blue} X\r\n"
+            Log.d("BusyLight", btRequest)
+            btConnection.dispatch(btRequest)
         }
     }
 
@@ -200,6 +212,10 @@ class MainActivity : AppCompatActivity() {
             } catch (e: IOException) {
                 Log.e("BusyLight:ConnectThread", "Could not close the client socket", e)
             }
+        }
+
+        fun dispatch(message: String) {
+            btOutput!!.write(message.toByteArray())
         }
     }
 
