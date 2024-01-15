@@ -145,16 +145,17 @@ class MainActivity : AppCompatActivity() {
         } else {
             color = getColor(
                 when (view.id) {
-                    R.id.btOff -> R.color.grey
+                    R.id.btOff -> R.color.black
                     R.id.btRed -> R.color.red
                     R.id.btGreen -> R.color.green
                     R.id.btBlue -> R.color.blue
                     R.id.btYellow -> R.color.yellow
-                    else -> R.color.pink
+                    R.id.btPink -> R.color.pink
+                    else -> R.color.white
                 }
             )
             tint =
-                getColor(if (view.id == R.id.btYellow || view.id == R.id.btOff) R.color.black else R.color.white)
+                getColor(if (view.id == R.id.btYellow || view.id == R.id.btWhite) R.color.black else R.color.white)
             val text = (view as Button).text
             supportActionBar!!.setBackgroundDrawable(ColorDrawable(color))
             binding.toolbar.setTitleTextColor(tint)
