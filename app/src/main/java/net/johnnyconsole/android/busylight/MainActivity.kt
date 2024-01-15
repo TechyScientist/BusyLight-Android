@@ -78,7 +78,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun onButtonClick(view: View) {
-
         if (view.id == R.id.btCustom) {
             val builder = AlertDialog.Builder(this)
             val dialog = builder.setView(R.layout.dialog_custom_colour)
@@ -187,25 +186,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        btConnection.cancel()
+        btSocket = null
+        btOutput = null
+    }
 
     private inner class ConnectThread() : Thread() {
-        public override fun run() {
+        override fun run() {
             btSocket?.let { socket ->
-                // Connect to the remote device through the socket. This call blocks
-                // until it succeeds or throws an exception.
                 while(ActivityCompat.checkSelfPermission(this@MainActivity, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                     ActivityCompat.requestPermissions(this@MainActivity, arrayOf(Manifest.permission.BLUETOOTH_CONNECT), BT_REQUEST_CONNECT)
                 }
-
                 socket.connect()
-
-                // The connection attempt succeeded. Perform work associated with
-                // the connection in a separate thread.
-                //manageMyConnectedSocket(socket)
             }
         }
 
-        // Closes the client socket and causes the thread to finish.
         fun cancel() {
             try {
                 btSocket?.close()
