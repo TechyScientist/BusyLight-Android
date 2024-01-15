@@ -11,7 +11,6 @@ import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.util.Log
-import android.view.MenuItem
 import android.view.View
 import android.widget.Button
 import android.widget.RadioButton
@@ -21,7 +20,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.google.android.material.slider.Slider
 import net.johnnyconsole.android.busylight.databinding.ActivityMainBinding
-import java.io.IOException
 import java.util.UUID
 
 class MainActivity : AppCompatActivity() {
