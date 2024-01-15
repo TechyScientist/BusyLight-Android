@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "net.johnnyconsole.android.busylight"
-        minSdk = 27
+        minSdk = 31
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
