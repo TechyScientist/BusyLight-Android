@@ -1,10 +1,8 @@
 package net.johnnyconsole.android.busylight
 
-import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
-import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.Button
@@ -12,7 +10,6 @@ import android.widget.RadioButton
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.get
 import com.google.android.material.slider.Slider
 import net.johnnyconsole.android.busylight.databinding.ActivityMainBinding
 
@@ -135,19 +132,5 @@ class MainActivity : AppCompatActivity() {
             settings.icon!!.setTint(tint)
             supportActionBar!!.title = "BusyLight: $text"
         }
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.menu_main, menu)
-        settings = menu!![0]
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        val intent = Intent(this, SettingsActivity::class.java)
-        intent.putExtra("color", color)
-        intent.putExtra("tint", tint)
-        startActivity(intent)
-        return true
     }
 }
