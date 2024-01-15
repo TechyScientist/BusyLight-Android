@@ -20,6 +20,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.google.android.material.slider.Slider
 import net.johnnyconsole.android.busylight.databinding.ActivityMainBinding
+import java.io.IOException
 import java.util.UUID
 
 class MainActivity : AppCompatActivity() {
@@ -31,6 +32,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btManager: BluetoothManager
     private lateinit var btAdapter: BluetoothAdapter
     private lateinit var btDevice: BluetoothDevice
+    private lateinit var btConnection: ConnectThread
     private var btSocket: BluetoothSocket? = null
 
     private val BT_SERIAL_UUID = "00001101-0000-1000-8000-00805F9B34FB"
@@ -61,11 +63,12 @@ class MainActivity : AppCompatActivity() {
 
         val pairedDevices: Set<BluetoothDevice>? = btAdapter.bondedDevices
         pairedDevices?.forEach { device ->
-            Log.i("BusyLight", device.address)
             if(device.name == "BusyLight") btDevice = device
         }
 
         btSocket = btDevice.createRfcommSocketToServiceRecord(UUID.fromString(BT_SERIAL_UUID))
+        btConnection = ConnectThread()
+        btConnection.start()
     }
 
     fun onButtonClick(view: View) {
@@ -170,8 +173,34 @@ class MainActivity : AppCompatActivity() {
             binding.toolbar.setTitleTextColor(tint)
             supportActionBar!!.title = "BusyLight: $text"
         }
+    }
 
 
+    private inner class ConnectThread() : Thread() {
+        public override fun run() {
+            btSocket?.let { socket ->
+                // Connect to the remote device through the socket. This call blocks
+                // until it succeeds or throws an exception.
+                while(ActivityCompat.checkSelfPermission(this@MainActivity, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this@MainActivity, arrayOf(Manifest.permission.BLUETOOTH_CONNECT), BT_REQUEST_CONNECT)
+                }
+
+                socket.connect()
+
+                // The connection attempt succeeded. Perform work associated with
+                // the connection in a separate thread.
+                //manageMyConnectedSocket(socket)
+            }
+        }
+
+        // Closes the client socket and causes the thread to finish.
+        fun cancel() {
+            try {
+                btSocket?.close()
+            } catch (e: IOException) {
+                Log.e("BusyLight:ConnectThread", "Could not close the client socket", e)
+            }
+        }
     }
 
 }
