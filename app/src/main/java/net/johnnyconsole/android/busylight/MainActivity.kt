@@ -54,27 +54,6 @@ class MainActivity : AppCompatActivity() {
         supportActionBar!!.setBackgroundDrawable(ColorDrawable(color))
         supportActionBar!!.title = "BusyLight: Off"
         binding.toolbar.setTitleTextColor(tint)
-
-        btManager = getSystemService(BluetoothManager::class.java)
-        btAdapter = btManager.adapter
-
-        while (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.BLUETOOTH_CONNECT), BT_REQUEST_CONNECT)
-        }
-
-        while(!btAdapter.isEnabled) {
-            startActivityForResult(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE), BT_REQUEST_ENABLE)
-        }
-
-        val pairedDevices: Set<BluetoothDevice>? = btAdapter.bondedDevices
-        pairedDevices?.forEach { device ->
-            if(device.name == "BusyLight") btDevice = device
-        }
-
-        btSocket = btDevice.createRfcommSocketToServiceRecord(UUID.fromString(BT_SERIAL_UUID))
-        btOutput = btSocket?.outputStream
-        btConnection = ConnectThread()
-        btConnection.start()
     }
 
     fun onButtonClick(view: View) {
@@ -186,11 +165,35 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    override fun onPause() {
+        super.onPause()
         btConnection.cancel()
         btSocket = null
         btOutput = null
+    }
+
+    override fun onResume() {
+        super.onResume()
+        btManager = getSystemService(BluetoothManager::class.java)
+        btAdapter = btManager.adapter
+
+        while (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.BLUETOOTH_CONNECT), BT_REQUEST_CONNECT)
+        }
+
+        while(!btAdapter.isEnabled) {
+            startActivityForResult(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE), BT_REQUEST_ENABLE)
+        }
+
+        val pairedDevices: Set<BluetoothDevice>? = btAdapter.bondedDevices
+        pairedDevices?.forEach { device ->
+            if(device.name == "BusyLight") btDevice = device
+        }
+
+        btSocket = btDevice.createRfcommSocketToServiceRecord(UUID.fromString(BT_SERIAL_UUID))
+        btOutput = btSocket?.outputStream
+        btConnection = ConnectThread()
+        btConnection.start()
     }
 
     private inner class ConnectThread() : Thread() {
