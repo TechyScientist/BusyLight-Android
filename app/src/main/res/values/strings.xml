@@ -19,4 +19,6 @@
     <string name="connectionError">Connection Error</string>
     <string name="connectionErrorMessage">Could not connect to BusyLight. Please make sure your BusyLight is powered on and paired with your device and try again.</string>
     <string name="dismiss">Dismiss</string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
 </resources>

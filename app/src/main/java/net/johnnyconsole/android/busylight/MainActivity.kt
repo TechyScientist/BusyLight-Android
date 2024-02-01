@@ -11,16 +11,21 @@ import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.widget.Button
 import android.widget.RadioButton
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.app.ActivityCompat
 import androidx.core.graphics.blue
 import androidx.core.graphics.green
 import androidx.core.graphics.red
+import androidx.core.view.get
 import com.google.android.material.slider.Slider
 import net.johnnyconsole.android.busylight.databinding.ActivityMainBinding
 import java.io.IOException
@@ -33,11 +38,13 @@ class MainActivity : AppCompatActivity() {
     private var color: Int = 0
     private var tint: Int = 0
     private var connected: Boolean = false
+    private var timeout = false
 
     private lateinit var btManager: BluetoothManager
     private lateinit var btAdapter: BluetoothAdapter
     private lateinit var btDevice: BluetoothDevice
     private lateinit var btConnection: ConnectThread
+    private lateinit var connectionButton: MenuItem
     private var btSocket: BluetoothSocket? = null
     private var btOutput: OutputStream? = null
 
@@ -50,10 +57,10 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
-        color = getColor(R.color.grey)
-        tint = getColor(R.color.black)
+        color = getColor(R.color.black)
+        tint = getColor(R.color.white)
         supportActionBar!!.setBackgroundDrawable(ColorDrawable(color))
-        supportActionBar!!.title = "BusyLight: Off"
+        supportActionBar!!.title = "BusyLight: Disconnected"
         binding.toolbar.setTitleTextColor(tint)
     }
 
@@ -79,6 +86,7 @@ class MainActivity : AppCompatActivity() {
                         getColor(if (dialog.findViewById<RadioButton>(R.id.rbBlack)!!.isChecked) R.color.black else R.color.white)
                     supportActionBar!!.setBackgroundDrawable(ColorDrawable(color))
                     binding.toolbar.setTitleTextColor(tint)
+                    connectionButton.icon!!.setTint(tint)
                     supportActionBar!!.title = "BusyLight: Custom"
                     val btRequest = "R${color.red} G${color.green} B${color.blue} X\r\n"
                     Log.d("BusyLight", btRequest)
@@ -167,6 +175,7 @@ class MainActivity : AppCompatActivity() {
             val text = (view as Button).text
             supportActionBar!!.setBackgroundDrawable(ColorDrawable(color))
             binding.toolbar.setTitleTextColor(tint)
+            connectionButton.icon!!.setTint(tint)
             supportActionBar!!.title = "BusyLight: $text"
             val btRequest = "R${color.red} G${color.green} B${color.blue} X\r\n"
             Log.d("BusyLight", btRequest)
@@ -176,18 +185,15 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        try {
-            btConnection.cancel()
-            btSocket = null
-            btOutput = null
-            connected = false
-        } catch(e: Exception) {
-            connected = false
-        }
+        disconnect()
     }
 
     override fun onResume() {
         super.onResume()
+        connect()
+    }
+
+    private fun connect() {
         btManager = getSystemService(BluetoothManager::class.java)
         btAdapter = btManager.adapter
 
@@ -205,28 +211,93 @@ class MainActivity : AppCompatActivity() {
         }
 
         try {
+            timeout = false
             btSocket = btDevice.createRfcommSocketToServiceRecord(UUID.fromString(BT_SERIAL_UUID))
             btOutput = btSocket?.outputStream
             btConnection = ConnectThread()
             btConnection.start()
+            btConnection.join()
+            if(timeout) throw Exception()
             connected = true
+            tint = getColor(R.color.white)
+            color = getColor(R.color.black)
+            binding.toolbar.setTitleTextColor(tint)
+            binding.toolbar.title = "BusyLight: Off"
+            binding.toolbar.background.setTint(color)
+            connectionButton.icon = AppCompatResources.getDrawable(this, R.drawable.disconnect)
+            connectionButton.icon!!.setTint(tint)
         } catch (e: Exception) {
             connected = false
+            tint = getColor(R.color.white)
+            color = getColor(R.color.black)
+            binding.toolbar.setTitleTextColor(tint)
+            binding.toolbar.title = "BusyLight: Disconnected"
+            binding.toolbar.background.setTint(color)
             AlertDialog.Builder(this).setTitle(R.string.connectionError)
                 .setMessage(R.string.connectionErrorMessage)
                 .setNeutralButton(R.string.dismiss, null)
                 .create().show()
 
         }
+
     }
 
-    private inner class ConnectThread() : Thread() {
+    private fun disconnect() {
+        try {
+            btConnection.dispatch("R0 G0 B0 X")
+            tint = getColor(R.color.white)
+            color = getColor(R.color.black)
+            binding.toolbar.setTitleTextColor(tint)
+            binding.toolbar.title = "BusyLight: Disconnected"
+            binding.toolbar.background.setTint(color)
+            btConnection.cancel()
+            btSocket = null
+            btOutput = null
+            connected = false
+        } catch(e: Exception) {
+            connected = false
+        }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        super.onCreateOptionsMenu(menu)
+        menuInflater.inflate(R.menu.menu_main, menu)
+        connectionButton = menu!![0]
+        connectionButton.icon!!.setTint(tint)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if(connected) {
+            disconnect()
+            Toast.makeText(this, "Disconnected", Toast.LENGTH_LONG).show()
+            connectionButton.icon = AppCompatResources.getDrawable(this, R.drawable.connect)
+            connectionButton.title = getString(R.string.connect)
+            connectionButton.icon!!.setTint(tint)
+            connected = false
+        }
+        else {
+            connect()
+            Toast.makeText(this, "Connected", Toast.LENGTH_LONG).show()
+            connectionButton.icon = AppCompatResources.getDrawable(this, R.drawable.disconnect)
+            connectionButton.title = getString(R.string.disconnect)
+            connectionButton.icon!!.setTint(tint)
+            connected = true
+        }
+        return true
+    }
+
+    private inner class ConnectThread : Thread() {
         override fun run() {
             btSocket?.let { socket ->
                 while(ActivityCompat.checkSelfPermission(this@MainActivity, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                     ActivityCompat.requestPermissions(this@MainActivity, arrayOf(Manifest.permission.BLUETOOTH_CONNECT), BT_REQUEST_CONNECT)
                 }
-                socket.connect()
+                try {
+                    socket.connect()
+                } catch(e: Exception) {
+                   timeout = true
+                }
             }
         }
 
