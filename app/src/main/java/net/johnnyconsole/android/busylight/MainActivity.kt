@@ -32,6 +32,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var color: Int = 0
     private var tint: Int = 0
+    private var connected: Boolean = false
 
     private lateinit var btManager: BluetoothManager
     private lateinit var btAdapter: BluetoothAdapter
@@ -57,6 +58,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun onButtonClick(view: View) {
+        if(!connected) {
+            AlertDialog.Builder(this).setTitle(R.string.connectionError)
+                .setMessage(R.string.connectionErrorMessage)
+                .setNeutralButton(R.string.dismiss, null)
+                .create().show()
+            return
+        }
         if (view.id == R.id.btCustom) {
             val builder = AlertDialog.Builder(this)
             val dialog = builder.setView(R.layout.dialog_custom_colour)
@@ -168,9 +176,14 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        btConnection.cancel()
-        btSocket = null
-        btOutput = null
+        try {
+            btConnection.cancel()
+            btSocket = null
+            btOutput = null
+            connected = false
+        } catch(e: Exception) {
+            connected = false
+        }
     }
 
     override fun onResume() {
@@ -191,10 +204,20 @@ class MainActivity : AppCompatActivity() {
             if(device.name == "BusyLight") btDevice = device
         }
 
-        btSocket = btDevice.createRfcommSocketToServiceRecord(UUID.fromString(BT_SERIAL_UUID))
-        btOutput = btSocket?.outputStream
-        btConnection = ConnectThread()
-        btConnection.start()
+        try {
+            btSocket = btDevice.createRfcommSocketToServiceRecord(UUID.fromString(BT_SERIAL_UUID))
+            btOutput = btSocket?.outputStream
+            btConnection = ConnectThread()
+            btConnection.start()
+            connected = true
+        } catch (e: Exception) {
+            connected = false
+            AlertDialog.Builder(this).setTitle(R.string.connectionError)
+                .setMessage(R.string.connectionErrorMessage)
+                .setNeutralButton(R.string.dismiss, null)
+                .create().show()
+
+        }
     }
 
     private inner class ConnectThread() : Thread() {
